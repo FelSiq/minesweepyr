@@ -10,7 +10,7 @@ Python 3.8+
 
 # Installation
 ```
-git clone https://github.com/FelSiq/py-minesweeper.git
+git clone https://github.com/FelSiq/minesweepyr.git
 pip install -Ur requirements.txt
 ```
 
