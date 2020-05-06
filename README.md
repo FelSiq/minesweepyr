@@ -16,7 +16,7 @@ pip install -Ur requirements.txt
 
 # Run
 ```
-python minesweeper.py (basic|medium|expert)
+python minesweepyr.py (basic|medium|expert)
 ```
 
 # Commands
