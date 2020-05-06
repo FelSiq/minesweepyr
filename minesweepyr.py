@@ -26,11 +26,15 @@ GAME_OVER_COLOR = (0.720, 0.630, 0.760)
 GRID_COLOR = (0.96, 0.96, 0.96)
 
 CONFIG = {
-    "easy": (9, 9, 15),
+    "easy": (9, 9, 10),
     "medium": (16, 16, 40),
     "expert": (30, 16, 99),
 }
 """Default game configurations."""
+
+CMAP_DEFAULT = "gist_stern"
+CMAP_GAME_OVER = "RdGy"
+CMAP_WIN = "spring"
 
 
 class states_id(enum.IntEnum):
@@ -63,13 +67,16 @@ class _Timer:
         if self._timer is not None:
             self._timer.cancel()
 
+
 _mine_threshold = 9
 _adj_inds_x, _adj_inds_y = np.meshgrid([-1, 0, 1], [-1, 0, 1])
 _adj_inds_x = _adj_inds_x.astype(np.int8).ravel()
 _adj_inds_y = _adj_inds_y.astype(np.int8).ravel()
 _marked_mines_count = 0
+_openned_tiles = 0
 _game_is_over = False
 _restart_game = True
+_player_wins = False
 
 
 def is_mine(val: int) -> bool:
@@ -120,6 +127,16 @@ def flag_spot(states: np.ndarray, x: int, y: int,
         _marked_mines_count += 1
 
 
+def check_player_win(tiles_to_open: int) -> bool:
+    """Check whether the player won."""
+    print(_openned_tiles, tiles_to_open)
+    if not _game_is_over and _openned_tiles == tiles_to_open:
+        global _player_wins
+        _player_wins = True
+
+    return _player_wins
+
+
 def dfs_open(board: np.ndarray, states: np.ndarray, x: int, y: int,
              annotations: np.ndarray) -> None:
     """Open empty positions iteratively."""
@@ -137,6 +154,8 @@ def dfs_open(board: np.ndarray, states: np.ndarray, x: int, y: int,
 
     pos = [(y, x)]
 
+    global _openned_tiles
+
     while pos:
         cur_y, cur_x = pos.pop()
 
@@ -144,6 +163,7 @@ def dfs_open(board: np.ndarray, states: np.ndarray, x: int, y: int,
             continue
 
         states[cur_y, cur_x] = states_id.OPEN
+        _openned_tiles += 1
 
         if not is_empty(board[cur_y, cur_x]):
             annotations[cur_y, cur_x] = str(board[cur_y, cur_x])
@@ -289,9 +309,13 @@ def _draw_plot(board: np.ndarray,
     """Draw game window."""
     def _canonical_axis(ax):
         """Build a standardized axis."""
-        ax.matshow(states[1:-1, 1:-1],
-                   picker=1,
-                   cmap="gist_stern" if not _game_is_over else "RdGy")
+        cmap = CMAP_DEFAULT
+
+        if _game_is_over: cmap = CMAP_GAME_OVER
+        elif _player_wins: cmap = CMAP_WIN
+
+        ax.matshow(states[1:-1, 1:-1], picker=1, cmap=cmap)
+
         ax.grid(alpha=1, color=GRID_COLOR, linewidth=2, which="both")
         ax.set_xticks(np.arange(-0.5, board.shape[1] - 1.5, 1))
         ax.set_yticks(np.arange(-0.5, board.shape[0] - 1.5, 1))
@@ -323,7 +347,7 @@ def _draw_plot(board: np.ndarray,
 
     def _mouse_event_onpick(event):
         """Handle user mouse clicks."""
-        if _game_is_over:
+        if _game_is_over or _player_wins:
             global _restart_game
             _restart_game = True
             plt.close(fig)
@@ -365,6 +389,7 @@ def _draw_plot(board: np.ndarray,
                          y=y,
                          annotations=annotations)
 
+            check_player_win(tiles_to_open)
             _canonical_axis(ax)
             _fill_anotations(annotations)
 
@@ -387,6 +412,7 @@ def _draw_plot(board: np.ndarray,
                                  y=cur_y,
                                  annotations=annotations)
 
+            check_player_win(tiles_to_open)
             _canonical_axis(ax)
             _fill_anotations(annotations)
 
@@ -397,12 +423,17 @@ def _draw_plot(board: np.ndarray,
             _canonical_axis(ax)
             _fill_anotations(annotations)
 
-        ax.set_title(f"Time counter: {timer.time_counter:03d}s "
-                     f"{'(Game Over! Click anywhere to restart.)' if _game_is_over else ''}")
+        ax.set_title(
+            f"Time counter: {timer.time_counter:03d}s "
+            f"{'(Game is over! Click anywhere to restart.)' if _game_is_over else ''}"
+            f"{'(Good job! Click anywhere to restart.)' if _player_wins else ''}"
+        )
+
         ax.set_xlabel(
             f"Mines remaining: {num_mines - _marked_mines_count:02d}")
         plt.draw()
 
+    tiles_to_open = (board.shape[0] - 2) * (board.shape[1] - 2) - num_mines
     fig = plt.figure()
     fig.suptitle("Minesweepyr")
     ax = fig.add_subplot(111)
@@ -421,10 +452,14 @@ def start_game(width: int,
     global _marked_mines_count
     global _game_is_over
     global _restart_game
+    global _player_wins
+    global _openned_tiles
 
     _restart_game = False
     _marked_mines_count = 0
+    _openned_tiles = 0
     _game_is_over = False
+    _player_wins = False
 
     annotations = np.zeros((2 + height, 2 + width), dtype="U1")
     board, states = init_board(width=width,
@@ -474,7 +509,7 @@ def _test() -> None:
         exit(2)
 
     while _restart_game:
-        keep_running = start_game(*config)
+        start_game(*config)
 
 
 if __name__ == "__main__":
