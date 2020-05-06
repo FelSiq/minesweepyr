@@ -1,6 +1,9 @@
 # Minesweeper in Python
+![Python minesweeper ('easy' difficult)](images/ms1.png)
 This is a simple implementation of Minesweeper fully in Python.
 
+<img alt="Python minesweeper ('medium' difficult)" src="images/ms2.png" width="256" />
+<img alt="Python minesweeper ('expert' difficult)" src="images/ms3.png" width="256" />
 # Requirements
 Python 3.8+
 
