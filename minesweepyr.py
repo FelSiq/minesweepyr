@@ -2,6 +2,7 @@
 import typing as t
 import enum
 import threading
+import importlib
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,6 +23,8 @@ SYMB_COLORS = {
 
 GAME_OVER_COLOR = (0.720, 0.630, 0.760)
 
+GRID_COLOR = (0.96, 0.96, 0.96)
+
 CONFIG = {
     "easy": (9, 9, 15),
     "medium": (16, 16, 40),
@@ -38,12 +41,35 @@ class states_id(enum.IntEnum):
     EXPLODED = 2
 
 
+class _Timer:
+    """Count game seconds."""
+    def __init__(self, time: int, ax: t.Any):
+        self.time = time
+        self.ax = ax
+        self.time_counter = 0
+        self._timer = None
+        self.started = False
+
+    def inc_time(self):
+        self.time_counter += 1
+        self.start()
+
+    def start(self):
+        self.started = True
+        self._timer = threading.Timer(self.time, self.inc_time)
+        self._timer.start()
+
+    def stop(self):
+        if self._timer is not None:
+            self._timer.cancel()
+
 _mine_threshold = 9
 _adj_inds_x, _adj_inds_y = np.meshgrid([-1, 0, 1], [-1, 0, 1])
 _adj_inds_x = _adj_inds_x.astype(np.int8).ravel()
 _adj_inds_y = _adj_inds_y.astype(np.int8).ravel()
 _marked_mines_count = 0
 _game_is_over = False
+_restart_game = True
 
 
 def is_mine(val: int) -> bool:
@@ -266,7 +292,7 @@ def _draw_plot(board: np.ndarray,
         ax.matshow(states[1:-1, 1:-1],
                    picker=1,
                    cmap="gist_stern" if not _game_is_over else "RdGy")
-        ax.grid(alpha=1, color="white", linewidth=2, which="both")
+        ax.grid(alpha=1, color=GRID_COLOR, linewidth=2, which="both")
         ax.set_xticks(np.arange(-0.5, board.shape[1] - 1.5, 1))
         ax.set_yticks(np.arange(-0.5, board.shape[0] - 1.5, 1))
         ax.tick_params(left=False,
@@ -298,6 +324,9 @@ def _draw_plot(board: np.ndarray,
     def _mouse_event_onpick(event):
         """Handle user mouse clicks."""
         if _game_is_over:
+            global _restart_game
+            _restart_game = True
+            plt.close(fig)
             return
 
         mouse = event.mouseevent
@@ -368,14 +397,14 @@ def _draw_plot(board: np.ndarray,
             _canonical_axis(ax)
             _fill_anotations(annotations)
 
-        ax.set_title(f"Time counter: {timer.time_counter:03d} "
-                     f"{'(Game Over!)' if _game_is_over else ''}")
+        ax.set_title(f"Time counter: {timer.time_counter:03d}s "
+                     f"{'(Game Over! Click anywhere to restart.)' if _game_is_over else ''}")
         ax.set_xlabel(
             f"Mines remaining: {num_mines - _marked_mines_count:02d}")
         plt.draw()
 
     fig = plt.figure()
-    fig.suptitle("Python Minesweeper")
+    fig.suptitle("Minesweepyr")
     ax = fig.add_subplot(111)
     timer = _Timer(1, ax=ax)
     _canonical_axis(ax)
@@ -384,48 +413,41 @@ def _draw_plot(board: np.ndarray,
     return fig, ax, timer
 
 
-class _Timer:
-    """Count game seconds."""
-    def __init__(self, time: int, ax: t.Any):
-        self.time = time
-        self.ax = ax
-        self.time_counter = 0
-        self._timer = None
-        self.started = False
-
-    def inc_time(self):
-        self.time_counter += 1
-        self.start()
-
-    def start(self):
-        self.started = True
-        self._timer = threading.Timer(self.time, self.inc_time)
-        self._timer.start()
-
-    def stop(self):
-        if self._timer is not None:
-            self._timer.cancel()
-
-
 def start_game(width: int,
                height: int,
                num_mines: int,
                random_state: t.Optional[int] = None) -> None:
     """Start a new game."""
+    global _marked_mines_count
+    global _game_is_over
+    global _restart_game
+
+    _restart_game = False
+    _marked_mines_count = 0
+    _game_is_over = False
+
     annotations = np.zeros((2 + height, 2 + width), dtype="U1")
     board, states = init_board(width=width,
                                height=height,
                                num_mines=num_mines,
                                annotations=annotations,
                                random_state=random_state)
+
     fig, ax, timer = _draw_plot(board=board,
                                 states=states,
                                 annotations=annotations,
                                 num_mines=num_mines,
                                 random_state=random_state)
 
-    plt.show()
-    timer.stop()
+    try:
+        plt.show()
+
+    except Exception:
+        pass
+
+    finally:
+        timer.stop()
+        importlib.reload(plt)
 
 
 def game_over(board: np.ndarray, states: np.ndarray,
@@ -451,7 +473,8 @@ def _test() -> None:
               "in {easy, medium, expert}.")
         exit(2)
 
-    start_game(*config)
+    while _restart_game:
+        keep_running = start_game(*config)
 
 
 if __name__ == "__main__":
