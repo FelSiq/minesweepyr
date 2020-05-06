@@ -182,11 +182,8 @@ def _set_pos_val(board: np.ndarray, x: int, y: int, val: int,
     y = y + 1
 
     # If value corresponds to a mine, increment neighborhood
-    inc = int(is_mine(val))
-
     # If current position is a mine, decrement neighborhood
-    if is_mine(board[y, x]):
-        inc -= 1
+    inc = np.int8(is_mine(val)) - np.int8(is_mine(board[y, x]))
 
     _inds_y = y + _adj_inds_y
     _inds_x = x + _adj_inds_x
@@ -229,7 +226,7 @@ def place_mines(board: np.ndarray, x: t.Union[np.ndarray, int],
         _set_pos_val(board,
                      x=cur_x,
                      y=cur_y,
-                     val=2 * _mine_threshold,
+                     val=board[cur_y + 1, cur_x + 1] + _mine_threshold,
                      annotations=annotations)
 
 
@@ -251,11 +248,12 @@ def handle_first_click(board: np.ndarray,
         new_x = np.random.randint(board.shape[1] - 2)
 
     if new_y != y or new_x != x:
-        _set_pos_val(board, x=x, y=y, val=0, annotations=annotations)
+        new_val = board[y + 1, x + 1] - _mine_threshold
+        _set_pos_val(board, x=x, y=y, val=new_val, annotations=annotations)
         _set_pos_val(board,
                      x=new_x,
                      y=new_y,
-                     val=2 * _mine_threshold,
+                     val=_mine_threshold,
                      annotations=annotations)
 
 
@@ -499,7 +497,8 @@ def _test() -> None:
     import sys
 
     if len(sys.argv) <= 1:
-        print("usage: python", sys.argv[0], "(easy|medium|expert)")
+        print("usage: python", sys.argv[0],
+              "(easy|medium|expert) [random_seed]")
         exit(1)
 
     config = CONFIG.get(sys.argv[1])
@@ -509,8 +508,16 @@ def _test() -> None:
               "in {easy, medium, expert}.")
         exit(2)
 
+    random_state = None
+
+    if len(sys.argv) >= 3:
+        random_state = int(sys.argv[2])
+
     while _restart_game:
-        start_game(*config)
+        start_game(*config, random_state=random_state)
+
+        if random_state is not None:
+            random_state += 1
 
 
 if __name__ == "__main__":
