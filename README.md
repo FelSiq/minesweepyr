@@ -6,7 +6,7 @@ Python 3.8+
 
 # Installation
 ```
-git clone https://github.com/FelSiq/py-minesweeper
+git clone https://github.com/FelSiq/py-minesweeper.git
 pip install -Ur requirements.txt
 ```
 
@@ -17,9 +17,9 @@ python minesweeper.py (basic|medium|expert)
 
 # Commands
 Standard minesweeper commands:
-**Left click:** open tile
-**Right click:** switch mark in tile
-**Both/middle button:** open all tiles in the neighborhood of target tile
+- **Left click:** open tile;
+- **Right click:** switch mark in tile; and
+- **Both/middle button:** open all tiles in the neighborhood of target tile.
 
 # License
 MIT.
