@@ -129,7 +129,6 @@ def flag_spot(states: np.ndarray, x: int, y: int,
 
 def check_player_win(tiles_to_open: int) -> bool:
     """Check whether the player won."""
-    print(_openned_tiles, tiles_to_open)
     if not _game_is_over and _openned_tiles == tiles_to_open:
         global _player_wins
         _player_wins = True
