@@ -468,6 +468,8 @@ def start_game(width: int,
                                annotations=annotations,
                                random_state=random_state)
 
+    plt.style.use("dark_background")
+
     fig, ax, timer = _draw_plot(board=board,
                                 states=states,
                                 annotations=annotations,
