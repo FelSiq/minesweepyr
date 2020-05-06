@@ -15,8 +15,9 @@ pip install -Ur requirements.txt
 ```
 
 # Run
+While running the python script, the first argument must be the difficult level ('easy', 'medium', or 'expert'). Additionally, you may send a numeric random seed as the second (optional) argument to repeat the same game sequences.
 ```
-python minesweepyr.py (basic|medium|expert)
+python minesweepyr.py (easy|medium|expert) [random_seed]
 ```
 
 # Commands
